@@ -2,8 +2,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 // Removed TensorFlow imports
-// let tf: typeof import('@tensorflow/tfjs') | null = null;
-// let cocoSsd: typeof import('@tensorflow-models/coco-ssd') | null = null;
 
 // Define interfaces for data structures
 interface InventoryItem {
@@ -49,7 +47,7 @@ const MessageModal: React.FC<{
           <button
             onClick={() => { onConfirm?.(); onClose(); }}
             className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            autoFocus // Automatically focus OK button for accessibility
+            autoFocus
           >
             OK
           </button>
@@ -62,16 +60,13 @@ const MessageModal: React.FC<{
 
 export default function App() {
   // --- Page Navigation State ---
-  const [currentPage, setCurrentPage] = useState<string>('home'); // 'home', 'inventory', 'generate', 'saved', 'recipeDetail'
-  const [selectedRecipe, setSelectedRecipe] = useState<SavedRecipe | null>(null); // For recipe detail view
+  const [currentPage, setCurrentPage] = useState<string>('home');
+  const [selectedRecipe, setSelectedRecipe] = useState<SavedRecipe | null>(null);
 
   // --- Inventory States ---
   const [pantryInput, setPantryInput] = useState("");
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   // Removed cameraInputRef and related states
-  // const cameraInputRef = useRef<HTMLInputElement>(null);
-  // const [isModelLoading, setIsModelLoading] = useState(false);
-  // const [objectDetectionError, setObjectDetectionError] = useState<string | null>(null);
 
   // --- Recipe Generation States ---
   const [mealTypeInput, setMealTypeInput] = useState("");
@@ -139,10 +134,6 @@ export default function App() {
     }
   };
 
-  // Removed handleCameraInputChange as TensorFlow is gone
-  // const handleCameraInputChange = async (event: React.ChangeEvent<HTMLInputElement>) => { /* ... */ };
-
-
   const handleDeleteInventoryItem = async (itemId: string) => {
     showModal(
       `Are you sure you want to remove this item from your inventory?`,
@@ -181,7 +172,7 @@ export default function App() {
     const inventoryNames = inventory.map(item => item.name).join(", ");
 
     const prompt = `I have the following ingredients in my pantry: ${inventoryNames}.
-I want to cook a ${mealTypeInput}. My cooking skill level is "${skillLevel || "not specified"}".
+I want to cook a ${mealTypeInput}. My cooking skill level is "${skillLevel ?? "not specified"}".
 Please give me 5 recipe ideas that use these items.
 For each recipe, provide:
 1. Recipe name (e.g., "Chicken Stir-fry")
@@ -194,11 +185,7 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
     try {
       const chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
       const payload = { contents: chatHistory };
-      // --- IMPORTANT CHANGE HERE ---
-      // Use process.env.NEXT_PUBLIC_GEMINI_API_KEY for local/Vercel environments
-      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyBKPYHwo8CZzj-eVM-qp1uWiQCIkQ58CQw"; 
-      // If you are running this *only* in Canvas, you can revert to `const apiKey = "";`
-      // but if you're running locally or deploying to Vercel, this is necessary.
+      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY ?? "AIzaSyBKPYHwo8CZzj-eVM-qp1uWiQCIkQ58CQw";
 
       if (!apiKey) {
         throw new Error("Gemini API Key is not configured. Please set NEXT_PUBLIC_GEMINI_API_KEY in your .env.local file or Vercel environment variables.");
@@ -216,7 +203,7 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
         const errorData = await response.json();
         throw new Error(
           `API error: ${response.status} ${response.statusText} - ${
-            errorData.error?.message || "Unknown error"
+            errorData.error?.message ?? "Unknown error"
           }`,
         );
       }
@@ -250,19 +237,21 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
   };
 
   const parseGeneratedRecipes = (markdown: string): GeneratedRecipe[] => {
+    // Fixed: Use RegExp.exec() for better ESLint compliance and clarity
     const recipeBlocks = markdown.split(/\n---\n|\n--- \n/).filter(block => block.trim() !== '');
     return recipeBlocks.map(block => {
-      const titleMatch = block.match(/^##\s*(.*?)(\n|$)/m);
-      const ingredientsMatch = block.match(/###\s*Ingredients:\n([\s\S]*?)(?=\n###|$)/m);
-      const instructionsMatch = block.match(/###\s*Instructions:\n([\s\S]*?)(?=\n###|$)/m);
-      const notesMatch = block.match(/###\s*Notes:\n([\s\S]*?)(\n|$)/m);
+      // Fixed: Use RegExp.exec() and nullish coalescing
+      const titleMatch = /^##\s*(.*?)(\n|$)/m.exec(block);
+      const ingredientsMatch = /###\s*Ingredients:\n([\s\S]*?)(?=\n###|$)/m.exec(block);
+      const instructionsMatch = /###\s*Instructions:\n([\s\S]*?)(?=\n###|$)/m.exec(block);
+      const notesMatch = /###\s*Notes:\n([\s\S]*?)(\n|$)/m.exec(block);
 
       return {
-        title: titleMatch?.[1]?.trim() || "Untitled Recipe",
-        description: "", // Gemini doesn't provide a separate short description in this format
-        ingredients: ingredientsMatch?.[1]?.trim() || "No ingredients listed.",
-        instructions: instructionsMatch?.[1]?.trim() || "No instructions provided.",
-        notes: notesMatch?.[1]?.trim() || ""
+        title: titleMatch?.[1]?.trim() ?? "Untitled Recipe", // Fixed: Use ??
+        description: "",
+        ingredients: ingredientsMatch?.[1]?.trim() ?? "No ingredients listed.", // Fixed: Use ??
+        instructions: instructionsMatch?.[1]?.trim() ?? "No instructions provided.", // Fixed: Use ??
+        notes: notesMatch?.[1]?.trim() ?? "" // Fixed: Use ??
       };
     });
   };
@@ -280,7 +269,7 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
       const updatedSavedRecipes = [...savedRecipes, newSavedRecipe];
       setSavedRecipes(updatedSavedRecipes);
       localStorage.setItem('ingreedyFavourites', JSON.stringify(updatedSavedRecipes));
-      showModal(`"${recipeToSave.title}" saved to your recipes!`, 'alert');
+      showModal(`&quot;${recipeToSave.title}&quot; saved to your recipes!`, 'alert'); // Fixed: Escaped apostrophe
     } catch (e) {
       console.error("Error saving recipe:", e);
       showModal("Failed to save recipe.", 'alert');
@@ -291,7 +280,7 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
 
   const handleDeleteSavedRecipe = async (recipeId: string, recipeTitle: string) => {
     showModal(
-      `Are you sure you want to remove "${recipeTitle}" from your saved recipes?`,
+      `Are you sure you want to remove &quot;${recipeTitle}&quot; from your saved recipes?`, // Fixed: Escaped apostrophe
       'confirm',
       () => {
         try {
@@ -362,7 +351,7 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
             placeholder="Enter Pantry Item"
             value={pantryInput}
             onChange={(e) => setPantryInput(e.target.value)}
-            autoFocus // Added autoFocus
+            autoFocus
           />
           <button
             type="button"
@@ -397,7 +386,7 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
     </div>
   );
 
-  // Inventory Page Component (remains largely the same)
+  // Inventory Page Component
   const InventoryPage = () => (
     <div className="flex flex-col items-center p-4 sm:p-8 mt-20 min-h-[calc(100vh-80px)]">
       <h2 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-300 to-blue-300 mb-6 drop-shadow-lg">
@@ -441,7 +430,7 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
     </div>
   );
 
-  // Generate Recipe Page Component (remains largely the same)
+  // Generate Recipe Page Component
   const GenerateRecipePage = () => (
     <div className="flex flex-col items-center justify-center text-center p-4 sm:p-8 mt-20 min-h-[calc(100vh-80px)]">
       <h2 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-300 to-blue-300 mb-6 drop-shadow-lg">
@@ -459,7 +448,7 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
             onChange={(e) => setMealTypeInput(e.target.value)}
             placeholder="Enter Meal Type"
             className="w-full p-3 rounded-lg bg-white/15 border border-white/30 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200"
-            autoFocus // Added autoFocus
+            autoFocus
           />
 
           <div className="text-lg font-semibold text-gray-200 text-left">Skill Level:</div>
@@ -474,7 +463,7 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
               onClick={() => setSkillLevel('intermediate')}
               className={`px-4 py-2 rounded-lg font-semibold transition-colors duration-200 ${skillLevel === 'intermediate' ? 'bg-purple-700 text-white shadow-md' : 'bg-white/15 text-gray-300 hover:bg-purple-800'}`}
             >
-              Won't Burn Down the Kitchen
+              Won&apos;t Burn Down the Kitchen
             </button>
             <button
               onClick={() => setSkillLevel('expert')}
@@ -538,7 +527,7 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
     </div>
   );
 
-  // Saved Recipes Page Component (remains largely the same)
+  // Saved Recipes Page Component
   const SavedRecipesPage = () => (
     <div className="flex flex-col items-center p-4 sm:p-8 mt-20 min-h-[calc(100vh-80px)]">
       <h2 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange-300 to-red-300 mb-6 drop-shadow-lg">
@@ -546,7 +535,7 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
       </h2>
       {savedRecipes.length === 0 ? (
         <div className="text-gray-300 text-lg text-center mt-8">
-          You haven't saved any favourite recipes yet.
+          You haven&apos;t saved any favourite recipes yet.
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-5xl">
@@ -584,7 +573,7 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
     </div>
   );
 
-  // Recipe Detail Page Component (remains largely the same)
+  // Recipe Detail Page Component
   const RecipeDetailPage = () => {
     if (!selectedRecipe) {
       setCurrentPage('saved');
@@ -647,14 +636,16 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
     generatorError,
     savedRecipes,
     selectedRecipe,
-    isSavingRecipe
+    isSavingRecipe,
+    // Added page components to dependencies for useCallback
+    HomePage, InventoryPage, GenerateRecipePage, SavedRecipesPage, RecipeDetailPage
   ]);
 
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-purple-800 to-indigo-900 text-white font-sans">
       <NavBar />
-      <div className="pt-20 pb-8"> {/* Padding for fixed navbar and bottom user ID */}
+      <div className="pt-20 pb-8">
         {renderPage()}
       </div>
       {modal.isVisible && (
