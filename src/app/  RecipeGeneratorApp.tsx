@@ -1,7 +1,24 @@
 "use client";
 
 import React, { useState, useEffect } from "react"; 
+interface ContentPart {
+  text: string;
+}
 
+interface Content {
+  parts: ContentPart[];
+}
+
+interface Candidate {
+  content: Content;
+}
+
+interface GeminiApiResponse {
+  candidates?: Candidate[];
+  error?: {
+    message?: string;
+  };
+}
 interface InventoryItem {
   id: string;
   name: string;
@@ -147,23 +164,23 @@ export default function App() {
   };
 
   const handleGenerateRecipes = async () => {
-    if (!mealTypeInput.trim()) {
-      showModal('Please enter a meal type.', 'alert');
-      return;
-    }
-    if (inventory.length === 0) {
-      showModal('Your inventory is empty! Add some items first.', 'alert');
-      setCurrentPage('inventory');
-      return;
-    }
+  if (!mealTypeInput.trim()) {
+    showModal('Please enter a meal type.', 'alert');
+    return;
+  }
+  if (inventory.length === 0) {
+    showModal('Your inventory is empty! Add some items first.', 'alert');
+    setCurrentPage('inventory');
+    return;
+  }
 
-    setIsGenerating(true);
-    setGeneratorError(null);
-    setGeneratedRecipes([]);
+  setIsGenerating(true);
+  setGeneratorError(null);
+  setGeneratedRecipes([]);
 
-    const inventoryNames = inventory.map(item => item.name).join(", ");
+  const inventoryNames = inventory.map(item => item.name).join(", ");
 
-    const prompt = `I have the following ingredients in my pantry: ${inventoryNames}.
+  const prompt = `I have the following ingredients in my pantry: ${inventoryNames}.
 I want to cook a ${mealTypeInput}. My cooking skill level is "${skillLevel ?? "not specified"}".
 Please give me 5 recipe ideas that use these items.
 For each recipe, provide:
@@ -174,48 +191,46 @@ For each recipe, provide:
 
 Ensure the response is only the recipes in Markdown format, separated by a horizontal rule (---) between each recipe, without any conversational preamble or postamble.`;
 
-    try {
-      const chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
-      const payload = { contents: chatHistory };
-      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY ?? "AIzaSyBKPYHwo8CZzj-eVM-qp1uWiQCIkQ58CQw";
+  try {
+    const chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+    const payload = { contents: chatHistory };
+    const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY ?? "AIzaSyBKPYHwo8CZzj-eVM-qp1uWiQCIkQ58CQw";
 
-      if (!apiKey) throw new Error("Gemini API Key is not configured.");
+    if (!apiKey) throw new Error("Gemini API Key is not configured.");
 
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`API error: ${response.status} ${response.statusText} - ${errorData.error?.message ?? "Unknown error"}`);
-      }
-
-      const result: unknown = await response.json();
-      if (
-        typeof result === "object" &&
-        result !== null &&
-        "candidates" in result &&
-        Array.isArray((result as any).candidates) &&
-        (result as any).candidates?.[0]?.content?.parts?.length > 0
-      ) {
-        const generatedText = (result as any).candidates?.[0]?.content?.parts?.[0]?.text;
-        const parsed = parseGeneratedRecipes(generatedText);
-        setGeneratedRecipes(parsed);
-      } else {
-        setGeneratorError("Could not generate recipes. Please try again.");
-        console.error("Unexpected API response structure:", result);
-      }
-    } catch (err: any) {
-      console.error("Error generating recipes:", err);
-      setGeneratorError(err?.message ?? "An unexpected error occurred during recipe generation.");
-    } finally {
-      setIsGenerating(false);
+    if (!response.ok) {
+      const errorData: GeminiApiResponse = await response.json();
+      throw new Error(`API error: ${response.status} ${response.statusText} - ${errorData.error?.message ?? "Unknown error"}`);
     }
-  };
+
+    const result: GeminiApiResponse = await response.json();
+    if (result.candidates?.[0]?.content?.parts?.[0]?.text) {
+      const generatedText = result.candidates[0].content.parts[0].text;
+      const parsed = parseGeneratedRecipes(generatedText);
+      setGeneratedRecipes(parsed);
+    } else {
+      setGeneratorError("Could not generate recipes. Please try again.");
+      console.error("Unexpected API response structure:", result);
+    }
+  } catch (err: unknown) {
+    console.error("Error generating recipes:", err);
+    setGeneratorError(
+      err instanceof Error 
+        ? err.message 
+        : "An unexpected error occurred during recipe generation."
+    );
+  } finally {
+    setIsGenerating(false);
+  }
+};
 
   const parseGeneratedRecipes = (markdown: string): GeneratedRecipe[] => {
     const recipeBlocks = markdown.split(/\n---\n|\n--- /).filter(block => block.trim() !== '');
