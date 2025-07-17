@@ -1,7 +1,5 @@
 "use client";
 
-"use client";
-
 import React, { useState, useEffect } from "react"; // removed useRef
 
 // interfaces remain unchanged
@@ -24,8 +22,44 @@ interface SavedRecipe extends GeneratedRecipe {
   createdAt: string;
 }
 
-// Custom modal component remains unchanged
-// ... (same MessageModal component)
+const MessageModal: React.FC<{
+  message: string;
+  onConfirm?: () => void;
+  onCancel?: () => void;
+  type: 'alert' | 'confirm';
+  onClose: () => void;
+}> = ({ message, onConfirm, onCancel, type, onClose }) => {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[100]">
+      <div className="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full text-center text-gray-800 flex flex-col gap-4 border border-gray-300">
+        <p className="text-lg font-semibold">{message}</p>
+        <div className="flex justify-center gap-4 mt-4">
+          {type === 'confirm' && (
+            <button
+              onClick={() => {
+                onCancel?.();
+                onClose();
+              }}
+              className="px-6 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition-colors"
+            >
+              Cancel
+            </button>
+          )}
+          <button
+            onClick={() => {
+              onConfirm?.();
+              onClose();
+            }}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            autoFocus
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<string>('home');
@@ -572,45 +606,6 @@ const renderPage = () => {
       return <HomePage />;
   }
 };
-const MessageModal: React.FC<{
-  message: string;
-  onConfirm?: () => void;
-  onCancel?: () => void;
-  type: 'alert' | 'confirm';
-  onClose: () => void;
-}> = ({ message, onConfirm, onCancel, type, onClose }) => {
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[100]">
-      <div className="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full text-center text-gray-800 flex flex-col gap-4 border border-gray-300">
-        <p className="text-lg font-semibold">{message}</p>
-        <div className="flex justify-center gap-4 mt-4">
-          {type === 'confirm' && (
-            <button
-              onClick={() => {
-                onCancel?.();
-                onClose();
-              }}
-              className="px-6 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition-colors"
-            >
-              Cancel
-            </button>
-          )}
-          <button
-            onClick={() => {
-              onConfirm?.();
-              onClose();
-            }}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            autoFocus
-          >
-            OK
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-purple-800 to-indigo-900 text-white font-sans">
