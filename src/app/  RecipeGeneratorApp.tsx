@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react"; // removed useRef
+import React, { useState, useEffect } from "react"; 
 
-// interfaces remain unchanged
 interface InventoryItem {
   id: string;
   name: string;
