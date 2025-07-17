@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react"; 
+import React, { useState, useEffect } from "react";
 
+// interfaces remain unchanged
 interface InventoryItem {
   id: string;
   name: string;
@@ -19,6 +20,17 @@ interface GeneratedRecipe {
 interface SavedRecipe extends GeneratedRecipe {
   id: string;
   createdAt: string;
+}
+
+// Define an interface for the expected Gemini API response structure
+interface GeminiApiResponse {
+  candidates?: Array<{
+    content?: {
+      parts?: Array<{
+        text?: string;
+      }>;
+    };
+  }>;
 }
 
 const MessageModal: React.FC<{
@@ -164,7 +176,7 @@ export default function App() {
     const inventoryNames = inventory.map(item => item.name).join(", ");
 
     const prompt = `I have the following ingredients in my pantry: ${inventoryNames}.
-I want to cook a ${mealTypeInput}. My cooking skill level is "${skillLevel || "not specified"}".
+I want to cook a ${mealTypeInput}. My cooking skill level is "${skillLevel ?? "not specified"}".
 Please give me 5 recipe ideas that use these items.
 For each recipe, provide:
 1. Recipe name (e.g., "Chicken Stir-fry")
@@ -177,7 +189,7 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
     try {
       const chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
       const payload = { contents: chatHistory };
-      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyBKPYHwo8CZzj-eVM-qp1uWiQCIkQ58CQw";
+      const apiKey = typeof __api_key !== 'undefined' ? __api_key : "";
 
       if (!apiKey) throw new Error("Gemini API Key is not configured.");
 
@@ -191,46 +203,56 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(`API error: ${response.status} ${response.statusText} - ${errorData.error?.message || "Unknown error"}`);
+        throw new Error(`API error: ${response.status} ${response.statusText} - ${errorData.error?.message ?? "Unknown error"}`);
       }
 
-      const result: unknown = await response.json();
+      // Explicitly type the result
+      const result: GeminiApiResponse = await response.json();
       if (
-        typeof result === "object" &&
-        result !== null &&
-        "candidates" in result &&
-        Array.isArray((result as any).candidates) &&
-        (result as any).candidates?.[0]?.content?.parts?.length > 0
+        result?.candidates?.[0]?.content?.parts?.[0]?.text
       ) {
-        const generatedText = (result as any).candidates?.[0]?.content?.parts?.[0]?.text;
+        const generatedText = result.candidates[0].content.parts[0].text;
         const parsed = parseGeneratedRecipes(generatedText);
         setGeneratedRecipes(parsed);
       } else {
         setGeneratorError("Could not generate recipes. Please try again.");
         console.error("Unexpected API response structure:", result);
       }
-    } catch (err: any) {
+    } catch (err: unknown) { // Type err as unknown
       console.error("Error generating recipes:", err);
-      setGeneratorError(err?.message || "An unexpected error occurred during recipe generation.");
+      if (err instanceof Error) {
+        setGeneratorError(err.message ?? "An unexpected error occurred during recipe generation.");
+      } else {
+        setGeneratorError("An unexpected error occurred during recipe generation.");
+      }
     } finally {
       setIsGenerating(false);
     }
   };
 
   const parseGeneratedRecipes = (markdown: string): GeneratedRecipe[] => {
+    // Split by horizontal rules, filter out empty blocks
     const recipeBlocks = markdown.split(/\n---\n|\n--- /).filter(block => block.trim() !== '');
+
+    // Regex patterns for extraction (ensure they are new RegExp objects for exec)
+    const titleRegex = /^##\s*(.*?)(\n|$)/m;
+    const ingredientsRegex = /###\s*Ingredients:\n([\s\S]*?)(?=\n###|$)/m;
+    const instructionsRegex = /###\s*Instructions:\n([\s\S]*?)(?=\n###|$)/m;
+    const notesRegex = /###\s*Notes:\n([\s\S]*?)(\n|$)/m;
+
     return recipeBlocks.map(block => {
-      const titleMatch = block.match(/^##\s*(.*?)(\n|$)/m);
-      const ingredientsMatch = block.match(/###\s*Ingredients:\n([\s\S]*?)(?=\n###|$)/m);
-      const instructionsMatch = block.match(/###\s*Instructions:\n([\s\S]*?)(?=\n###|$)/m);
-      const notesMatch = block.match(/###\s*Notes:\n([\s\S]*?)(\n|$)/m);
+      // Use .exec() for each regex to get the match and capture groups
+      const titleMatch = titleRegex.exec(block);
+      const ingredientsMatch = ingredientsRegex.exec(block);
+      const instructionsMatch = instructionsRegex.exec(block);
+      const notesMatch = notesRegex.exec(block);
 
       return {
-        title: titleMatch?.[1]?.trim() || "Untitled Recipe",
-        description: "",
-        ingredients: ingredientsMatch?.[1]?.trim() || "No ingredients listed.",
-        instructions: instructionsMatch?.[1]?.trim() || "No instructions provided.",
-        notes: notesMatch?.[1]?.trim() || ""
+        title: titleMatch?.[1]?.trim() ?? "Untitled Recipe",
+        description: "", // Description is not extracted from the current prompt format
+        ingredients: ingredientsMatch?.[1]?.trim() ?? "No ingredients listed.",
+        instructions: instructionsMatch?.[1]?.trim() ?? "No instructions provided.",
+        notes: notesMatch?.[1]?.trim() ?? ""
       };
     });
   };
@@ -248,7 +270,7 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
       const updatedSavedRecipes = [...savedRecipes, newSavedRecipe];
       setSavedRecipes(updatedSavedRecipes);
       localStorage.setItem('ingreedyFavourites', JSON.stringify(updatedSavedRecipes));
-      showModal(`"${recipeToSave.title}" saved to your recipes!`, 'alert');
+      showModal(`&quot;${recipeToSave.title}&quot; saved to your recipes!`, 'alert');
     } catch (e) {
       console.error("Error saving recipe:", e);
       showModal("Failed to save recipe.", 'alert');
@@ -259,7 +281,7 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
 
   const handleDeleteSavedRecipe = async (recipeId: string, recipeTitle: string) => {
     showModal(
-      `Are you sure you want to remove "${recipeTitle}" from your saved recipes?`,
+      `Are you sure you want to remove &quot;${recipeTitle}&quot; from your saved recipes?`,
       'confirm',
       () => {
         try {
@@ -330,7 +352,7 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
             placeholder="Enter Pantry Item"
             value={pantryInput}
             onChange={(e) => setPantryInput(e.target.value)}
-            autoFocus // Added autoFocus
+            autoFocus
           />
           <button
             type="button"
@@ -427,7 +449,7 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
             onChange={(e) => setMealTypeInput(e.target.value)}
             placeholder="Enter Meal Type"
             className="w-full p-3 rounded-lg bg-white/15 border border-white/30 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200"
-            autoFocus // Added autoFocus
+            autoFocus
           />
 
           <div className="text-lg font-semibold text-gray-200 text-left">Skill Level:</div>
@@ -442,7 +464,7 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
               onClick={() => setSkillLevel('intermediate')}
               className={`px-4 py-2 rounded-lg font-semibold transition-colors duration-200 ${skillLevel === 'intermediate' ? 'bg-purple-700 text-white shadow-md' : 'bg-white/15 text-gray-300 hover:bg-purple-800'}`}
             >
-              Won't Burn Down the Kitchen
+              Won&apos;t Burn Down the Kitchen
             </button>
             <button
               onClick={() => setSkillLevel('expert')}
@@ -514,7 +536,7 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
       </h2>
       {savedRecipes.length === 0 ? (
         <div className="text-gray-300 text-lg text-center mt-8">
-          You haven't saved any favourite recipes yet.
+          You haven&apos;t saved any favourite recipes yet.
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-5xl">
@@ -581,7 +603,7 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
             onClick={() => setCurrentPage('saved')}
             className="mt-6 bg-purple-600 hover:bg-purple-700 active:scale-95 text-white font-bold py-3 px-6 rounded-full shadow-lg transition duration-300"
           >
-            ← Back to Favourites
+            &larr; Back to Favourites
           </button>
         </div>
       </div>
