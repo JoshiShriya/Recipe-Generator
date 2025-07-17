@@ -164,7 +164,7 @@ export default function App() {
     const inventoryNames = inventory.map(item => item.name).join(", ");
 
     const prompt = `I have the following ingredients in my pantry: ${inventoryNames}.
-I want to cook a ${mealTypeInput}. My cooking skill level is "${skillLevel || "not specified"}".
+I want to cook a ${mealTypeInput}. My cooking skill level is "${skillLevel ?? "not specified"}".
 Please give me 5 recipe ideas that use these items.
 For each recipe, provide:
 1. Recipe name (e.g., "Chicken Stir-fry")
@@ -177,7 +177,7 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
     try {
       const chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
       const payload = { contents: chatHistory };
-      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyBKPYHwo8CZzj-eVM-qp1uWiQCIkQ58CQw";
+      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY ?? "AIzaSyBKPYHwo8CZzj-eVM-qp1uWiQCIkQ58CQw";
 
       if (!apiKey) throw new Error("Gemini API Key is not configured.");
 
@@ -191,7 +191,7 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(`API error: ${response.status} ${response.statusText} - ${errorData.error?.message || "Unknown error"}`);
+        throw new Error(`API error: ${response.status} ${response.statusText} - ${errorData.error?.message ?? "Unknown error"}`);
       }
 
       const result: unknown = await response.json();
@@ -211,7 +211,7 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
       }
     } catch (err: any) {
       console.error("Error generating recipes:", err);
-      setGeneratorError(err?.message || "An unexpected error occurred during recipe generation.");
+      setGeneratorError(err?.message ?? "An unexpected error occurred during recipe generation.");
     } finally {
       setIsGenerating(false);
     }
@@ -226,11 +226,11 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
       const notesMatch = block.match(/###\s*Notes:\n([\s\S]*?)(\n|$)/m);
 
       return {
-        title: titleMatch?.[1]?.trim() || "Untitled Recipe",
+        title: titleMatch?.[1]?.trim() ?? "Untitled Recipe",
         description: "",
-        ingredients: ingredientsMatch?.[1]?.trim() || "No ingredients listed.",
-        instructions: instructionsMatch?.[1]?.trim() || "No instructions provided.",
-        notes: notesMatch?.[1]?.trim() || ""
+        ingredients: ingredientsMatch?.[1]?.trim() ?? "No ingredients listed.",
+        instructions: instructionsMatch?.[1]?.trim() ?? "No instructions provided.",
+        notes: notesMatch?.[1]?.trim() ?? ""
       };
     });
   };
@@ -455,9 +455,9 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
 
         <button
           onClick={handleGenerateRecipes}
-          disabled={isGenerating || inventory.length === 0}
+          disabled={isGenerating ?? inventory.length === 0}
           className={`w-full p-3 rounded-lg font-bold text-lg shadow-md transition duration-300
-            ${isGenerating || inventory.length === 0
+            ${isGenerating ?? inventory.length === 0
               ? "bg-gray-500 cursor-not-allowed"
               : "bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 active:scale-95"
             }`}
