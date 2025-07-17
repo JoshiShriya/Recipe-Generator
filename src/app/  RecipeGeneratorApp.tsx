@@ -544,15 +544,15 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
 
   // Saved Recipes Page Component (remains largely the same)
   const SavedRecipesPage = () => (
-    <div className="flex flex-col items-center p-4 sm:p-8 mt-20 min-h-[calc(100vh-80px)]">
-      <h2 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange-300 to-red-300 mb-6 drop-shadow-lg">
-        Your Favourites
-      </h2>
-      {savedRecipes.length === 0 ? (
-        <div className="text-gray-300 text-lg text-center mt-8">
-          You haven't saved any favourite recipes yet.
-        </div>
-      ) : (
+  <div className="flex flex-col items-center p-4 sm:p-8 mt-20 min-h-[calc(100vh-80px)]">
+    <h2 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange-300 to-red-300 mb-6 drop-shadow-lg">
+      Your Favourites
+    </h2>
+    {savedRecipes.length === 0 ? (
+      <div className="text-gray-300 text-lg text-center mt-8">
+        {"You haven't saved any favourite recipes yet."}
+      </div>
+    ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-5xl">
           {savedRecipes.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((recipe) => (
             <div key={recipe.id} className="bg-white/10 backdrop-blur-sm rounded-xl shadow-lg p-6 flex flex-col justify-between border border-white/20 hover:scale-[1.02] transition-transform duration-200">
