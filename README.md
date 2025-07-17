@@ -16,3 +16,4 @@ Demo Video
 https://youtu.be/KC5xKr56WMQ 
 
 
+If the website if being accessed through local host, then please make sure to type npm run dev
