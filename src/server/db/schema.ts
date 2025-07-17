@@ -1,6 +1,6 @@
-import { /* relations, */ sql } from "drizzle-orm"; // REMOVED relations
-import { index, pgTableCreator /*, primaryKey */ } from "drizzle-orm/pg-core"; // REMOVED primaryKey
-// import { type AdapterAccount } from "next-auth/adapters"; // Already removed
+import { relations, sql } from "drizzle-orm";
+import { index, pgTableCreator, primaryKey } from "drizzle-orm/pg-core";
+// import { type AdapterAccount } from "next-auth/adapters"; // REMOVED
 
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same

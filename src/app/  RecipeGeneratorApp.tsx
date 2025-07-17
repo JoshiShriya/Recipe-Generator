@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
-// Removed TensorFlow imports
+"use client";
 
-// Define interfaces for data structures
+import React, { useState, useEffect } from "react"; // removed useRef
+
+// interfaces remain unchanged
 interface InventoryItem {
-  id: string; // Unique ID for localStorage
+  id: string;
   name: string;
-  createdAt: string; // ISO string for date
+  createdAt: string;
 }
 
 interface GeneratedRecipe {
@@ -19,74 +20,36 @@ interface GeneratedRecipe {
 }
 
 interface SavedRecipe extends GeneratedRecipe {
-  id: string; // Unique ID for localStorage
-  createdAt: string; // ISO string for date
+  id: string;
+  createdAt: string;
 }
 
-// Custom Modal Component to replace alert/confirm
-const MessageModal: React.FC<{
-  message: string;
-  onConfirm?: () => void;
-  onCancel?: () => void;
-  type: 'alert' | 'confirm';
-  onClose: () => void;
-}> = ({ message, onConfirm, onCancel, type, onClose }) => {
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[100]">
-      <div className="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full text-center text-gray-800 flex flex-col gap-4 border border-gray-300">
-        <p className="text-lg font-semibold">{message}</p>
-        <div className="flex justify-center gap-4 mt-4">
-          {type === 'confirm' && (
-            <button
-              onClick={() => { onCancel?.(); onClose(); }}
-              className="px-6 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition-colors"
-            >
-              Cancel
-            </button>
-          )}
-          <button
-            onClick={() => { onConfirm?.(); onClose(); }}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            autoFocus
-          >
-            OK
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
+// Custom modal component remains unchanged
+// ... (same MessageModal component)
 
 export default function App() {
-  // --- Page Navigation State ---
   const [currentPage, setCurrentPage] = useState<string>('home');
   const [selectedRecipe, setSelectedRecipe] = useState<SavedRecipe | null>(null);
 
-  // --- Inventory States ---
   const [pantryInput, setPantryInput] = useState("");
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
-  // Removed cameraInputRef and related states
 
-  // --- Recipe Generation States ---
   const [mealTypeInput, setMealTypeInput] = useState("");
   const [skillLevel, setSkillLevel] = useState<string | null>(null);
   const [generatedRecipes, setGeneratedRecipes] = useState<GeneratedRecipe[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatorError, setGeneratorError] = useState<string | null>(null);
 
-  // --- Saved Recipes States ---
   const [savedRecipes, setSavedRecipes] = useState<SavedRecipe[]>([]);
   const [isSavingRecipe, setIsSavingRecipe] = useState(false);
 
-  // --- Modal State (Custom Alert/Confirm) ---
-  const [modal, setModal] = useState<{
-    message: string;
-    type: 'alert' | 'confirm';
-    onConfirm?: () => void;
-    onCancel?: () => void;
-    isVisible: boolean;
-  }>({ message: '', type: 'alert', isVisible: false });
+  const [modal, setModal] = useState({
+    message: '',
+    type: 'alert' as 'alert' | 'confirm',
+    onConfirm: undefined as (() => void) | undefined,
+    onCancel: undefined as (() => void) | undefined,
+    isVisible: false
+  });
 
   const showModal = (message: string, type: 'alert' | 'confirm', onConfirm?: () => void, onCancel?: () => void) => {
     setModal({ message, type, onConfirm, onCancel, isVisible: true });
@@ -96,20 +59,18 @@ export default function App() {
     setModal(prev => ({ ...prev, isVisible: false }));
   };
 
-  // --- LocalStorage Load on Mount ---
   useEffect(() => {
     const storedInventory = localStorage.getItem('ingreedyInventory');
     if (storedInventory) {
-      setInventory(JSON.parse(storedInventory));
+      setInventory(JSON.parse(storedInventory) as InventoryItem[]);
     }
 
     const storedSavedRecipes = localStorage.getItem('ingreedyFavourites');
     if (storedSavedRecipes) {
-      setSavedRecipes(JSON.parse(storedSavedRecipes));
+      setSavedRecipes(JSON.parse(storedSavedRecipes) as SavedRecipe[]);
     }
   }, []);
 
-  // --- Inventory Actions ---
   const handleAddPantryItem = async () => {
     const item = pantryInput.trim();
     if (!item) {
@@ -152,8 +113,6 @@ export default function App() {
     );
   };
 
-
-  // --- Recipe Generation Logic ---
   const handleGenerateRecipes = async () => {
     if (!mealTypeInput.trim()) {
       showModal('Please enter a meal type.', 'alert');
@@ -172,7 +131,7 @@ export default function App() {
     const inventoryNames = inventory.map(item => item.name).join(", ");
 
     const prompt = `I have the following ingredients in my pantry: ${inventoryNames}.
-I want to cook a ${mealTypeInput}. My cooking skill level is "${skillLevel ?? "not specified"}".
+I want to cook a ${mealTypeInput}. My cooking skill level is "${skillLevel || "not specified"}".
 Please give me 5 recipe ideas that use these items.
 For each recipe, provide:
 1. Recipe name (e.g., "Chicken Stir-fry")
@@ -185,73 +144,60 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
     try {
       const chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
       const payload = { contents: chatHistory };
-      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY ?? "AIzaSyBKPYHwo8CZzj-eVM-qp1uWiQCIkQ58CQw";
+      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyBKPYHwo8CZzj-eVM-qp1uWiQCIkQ58CQw";
 
-      if (!apiKey) {
-        throw new Error("Gemini API Key is not configured. Please set NEXT_PUBLIC_GEMINI_API_KEY in your .env.local file or Vercel environment variables.");
-      }
+      if (!apiKey) throw new Error("Gemini API Key is not configured.");
 
       const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
       const response = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(payload)
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(
-          `API error: ${response.status} ${response.statusText} - ${
-            errorData.error?.message ?? "Unknown error"
-          }`,
-        );
+        throw new Error(`API error: ${response.status} ${response.statusText} - ${errorData.error?.message || "Unknown error"}`);
       }
 
-      const result = await response.json();
-
+      const result: unknown = await response.json();
       if (
-        result.candidates &&
-        result.candidates.length > 0 &&
-        result.candidates[0].content &&
-        result.candidates[0].content.parts &&
-        result.candidates[0].content.parts.length > 0
+        typeof result === "object" &&
+        result !== null &&
+        "candidates" in result &&
+        Array.isArray((result as any).candidates) &&
+        (result as any).candidates?.[0]?.content?.parts?.length > 0
       ) {
-        const generatedText = result.candidates[0].content.parts[0].text;
+        const generatedText = (result as any).candidates?.[0]?.content?.parts?.[0]?.text;
         const parsed = parseGeneratedRecipes(generatedText);
         setGeneratedRecipes(parsed);
       } else {
         setGeneratorError("Could not generate recipes. Please try again.");
         console.error("Unexpected API response structure:", result);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error generating recipes:", err);
-      setGeneratorError(
-        err instanceof Error
-          ? err.message
-          : "An unexpected error occurred during recipe generation.",
-      );
+      setGeneratorError(err?.message || "An unexpected error occurred during recipe generation.");
     } finally {
       setIsGenerating(false);
     }
   };
 
   const parseGeneratedRecipes = (markdown: string): GeneratedRecipe[] => {
-    // Fixed: Use RegExp.exec() for better ESLint compliance and clarity
-    const recipeBlocks = markdown.split(/\n---\n|\n--- \n/).filter(block => block.trim() !== '');
+    const recipeBlocks = markdown.split(/\n---\n|\n--- /).filter(block => block.trim() !== '');
     return recipeBlocks.map(block => {
-      // Fixed: Use RegExp.exec() and nullish coalescing
-      const titleMatch = /^##\s*(.*?)(\n|$)/m.exec(block);
-      const ingredientsMatch = /###\s*Ingredients:\n([\s\S]*?)(?=\n###|$)/m.exec(block);
-      const instructionsMatch = /###\s*Instructions:\n([\s\S]*?)(?=\n###|$)/m.exec(block);
-      const notesMatch = /###\s*Notes:\n([\s\S]*?)(\n|$)/m.exec(block);
+      const titleMatch = block.match(/^##\s*(.*?)(\n|$)/m);
+      const ingredientsMatch = block.match(/###\s*Ingredients:\n([\s\S]*?)(?=\n###|$)/m);
+      const instructionsMatch = block.match(/###\s*Instructions:\n([\s\S]*?)(?=\n###|$)/m);
+      const notesMatch = block.match(/###\s*Notes:\n([\s\S]*?)(\n|$)/m);
 
       return {
-        title: titleMatch?.[1]?.trim() ?? "Untitled Recipe", // Fixed: Use ??
+        title: titleMatch?.[1]?.trim() || "Untitled Recipe",
         description: "",
-        ingredients: ingredientsMatch?.[1]?.trim() ?? "No ingredients listed.", // Fixed: Use ??
-        instructions: instructionsMatch?.[1]?.trim() ?? "No instructions provided.", // Fixed: Use ??
-        notes: notesMatch?.[1]?.trim() ?? "" // Fixed: Use ??
+        ingredients: ingredientsMatch?.[1]?.trim() || "No ingredients listed.",
+        instructions: instructionsMatch?.[1]?.trim() || "No instructions provided.",
+        notes: notesMatch?.[1]?.trim() || ""
       };
     });
   };
@@ -269,7 +215,7 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
       const updatedSavedRecipes = [...savedRecipes, newSavedRecipe];
       setSavedRecipes(updatedSavedRecipes);
       localStorage.setItem('ingreedyFavourites', JSON.stringify(updatedSavedRecipes));
-      showModal(`&quot;${recipeToSave.title}&quot; saved to your recipes!`, 'alert'); // Fixed: Escaped apostrophe
+      showModal(`"${recipeToSave.title}" saved to your recipes!`, 'alert');
     } catch (e) {
       console.error("Error saving recipe:", e);
       showModal("Failed to save recipe.", 'alert');
@@ -280,7 +226,7 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
 
   const handleDeleteSavedRecipe = async (recipeId: string, recipeTitle: string) => {
     showModal(
-      `Are you sure you want to remove &quot;${recipeTitle}&quot; from your saved recipes?`, // Fixed: Escaped apostrophe
+      `Are you sure you want to remove "${recipeTitle}" from your saved recipes?`,
       'confirm',
       () => {
         try {
@@ -351,7 +297,7 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
             placeholder="Enter Pantry Item"
             value={pantryInput}
             onChange={(e) => setPantryInput(e.target.value)}
-            autoFocus
+            autoFocus // Added autoFocus
           />
           <button
             type="button"
@@ -386,7 +332,7 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
     </div>
   );
 
-  // Inventory Page Component
+  // Inventory Page Component (remains largely the same)
   const InventoryPage = () => (
     <div className="flex flex-col items-center p-4 sm:p-8 mt-20 min-h-[calc(100vh-80px)]">
       <h2 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-300 to-blue-300 mb-6 drop-shadow-lg">
@@ -430,7 +376,7 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
     </div>
   );
 
-  // Generate Recipe Page Component
+  // Generate Recipe Page Component (remains largely the same)
   const GenerateRecipePage = () => (
     <div className="flex flex-col items-center justify-center text-center p-4 sm:p-8 mt-20 min-h-[calc(100vh-80px)]">
       <h2 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-300 to-blue-300 mb-6 drop-shadow-lg">
@@ -448,7 +394,7 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
             onChange={(e) => setMealTypeInput(e.target.value)}
             placeholder="Enter Meal Type"
             className="w-full p-3 rounded-lg bg-white/15 border border-white/30 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200"
-            autoFocus
+            autoFocus // Added autoFocus
           />
 
           <div className="text-lg font-semibold text-gray-200 text-left">Skill Level:</div>
@@ -463,7 +409,7 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
               onClick={() => setSkillLevel('intermediate')}
               className={`px-4 py-2 rounded-lg font-semibold transition-colors duration-200 ${skillLevel === 'intermediate' ? 'bg-purple-700 text-white shadow-md' : 'bg-white/15 text-gray-300 hover:bg-purple-800'}`}
             >
-              Won&apos;t Burn Down the Kitchen
+              Won't Burn Down the Kitchen
             </button>
             <button
               onClick={() => setSkillLevel('expert')}
@@ -527,7 +473,7 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
     </div>
   );
 
-  // Saved Recipes Page Component
+  // Saved Recipes Page Component (remains largely the same)
   const SavedRecipesPage = () => (
     <div className="flex flex-col items-center p-4 sm:p-8 mt-20 min-h-[calc(100vh-80px)]">
       <h2 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange-300 to-red-300 mb-6 drop-shadow-lg">
@@ -535,7 +481,7 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
       </h2>
       {savedRecipes.length === 0 ? (
         <div className="text-gray-300 text-lg text-center mt-8">
-          You haven&apos;t saved any favourite recipes yet.
+          You haven't saved any favourite recipes yet.
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-5xl">
@@ -573,7 +519,7 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
     </div>
   );
 
-  // Recipe Detail Page Component
+  // Recipe Detail Page Component (remains largely the same)
   const RecipeDetailPage = () => {
     if (!selectedRecipe) {
       setCurrentPage('saved');
@@ -610,42 +556,66 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
   };
 
   // --- Main App Render Logic ---
-  const renderPage = useCallback(() => {
-    switch (currentPage) {
-      case 'home':
-        return <HomePage />;
-      case 'inventory':
-        return <InventoryPage />;
-      case 'generate':
-        return <GenerateRecipePage />;
-      case 'saved':
-        return <SavedRecipesPage />;
-      case 'recipeDetail':
-        return <RecipeDetailPage />;
-      default:
-        return <HomePage />;
-    }
-  }, [
-    currentPage,
-    pantryInput,
-    inventory,
-    mealTypeInput,
-    skillLevel,
-    generatedRecipes,
-    isGenerating,
-    generatorError,
-    savedRecipes,
-    selectedRecipe,
-    isSavingRecipe,
-    // Added page components to dependencies for useCallback
-    HomePage, InventoryPage, GenerateRecipePage, SavedRecipesPage, RecipeDetailPage
-  ]);
+const renderPage = () => {
+  switch (currentPage) {
+    case 'home':
+      return <HomePage />;
+    case 'inventory':
+      return <InventoryPage />;
+    case 'generate':
+      return <GenerateRecipePage />;
+    case 'saved':
+      return <SavedRecipesPage />;
+    case 'recipeDetail':
+      return <RecipeDetailPage />;
+    default:
+      return <HomePage />;
+  }
+};
+const MessageModal: React.FC<{
+  message: string;
+  onConfirm?: () => void;
+  onCancel?: () => void;
+  type: 'alert' | 'confirm';
+  onClose: () => void;
+}> = ({ message, onConfirm, onCancel, type, onClose }) => {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[100]">
+      <div className="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full text-center text-gray-800 flex flex-col gap-4 border border-gray-300">
+        <p className="text-lg font-semibold">{message}</p>
+        <div className="flex justify-center gap-4 mt-4">
+          {type === 'confirm' && (
+            <button
+              onClick={() => {
+                onCancel?.();
+                onClose();
+              }}
+              className="px-6 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition-colors"
+            >
+              Cancel
+            </button>
+          )}
+          <button
+            onClick={() => {
+              onConfirm?.();
+              onClose();
+            }}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            autoFocus
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-purple-800 to-indigo-900 text-white font-sans">
       <NavBar />
-      <div className="pt-20 pb-8">
+      <div className="pt-20 pb-8"> {/* Padding for fixed navbar and bottom user ID */}
         {renderPage()}
       </div>
       {modal.isVisible && (
