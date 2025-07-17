@@ -468,25 +468,25 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
 
           <div className="text-lg font-semibold text-gray-200 text-left">Skill Level:</div>
           <div className="flex flex-wrap gap-3 justify-center sm:justify-start">
-            <button
-              onClick={() => setSkillLevel('beginner')}
-              className={`px-4 py-2 rounded-lg font-semibold transition-colors duration-200 ${skillLevel === 'beginner' ? 'bg-purple-700 text-white shadow-md' : 'bg-white/15 text-gray-300 hover:bg-purple-800'}`}
-            >
-              Never Touched a Knife
-            </button>
-            <button
-              onClick={() => setSkillLevel('intermediate')}
-              className={`px-4 py-2 rounded-lg font-semibold transition-colors duration-200 ${skillLevel === 'intermediate' ? 'bg-purple-700 text-white shadow-md' : 'bg-white/15 text-gray-300 hover:bg-purple-800'}`}
-            >
-              Won't Burn Down the Kitchen
-            </button>
-            <button
-              onClick={() => setSkillLevel('expert')}
-              className={`px-4 py-2 rounded-lg font-semibold transition-colors duration-200 ${skillLevel === 'expert' ? 'bg-purple-700 text-white shadow-md' : 'bg-white/15 text-gray-300 hover:bg-purple-800'}`}
-            >
-              Could Be on Master Chef
-            </button>
-          </div>
+  <button
+    onClick={() => setSkillLevel('beginner')}
+    className={`px-4 py-2 rounded-lg font-semibold transition-colors duration-200 ${skillLevel === 'beginner' ? 'bg-purple-700 text-white shadow-md' : 'bg-white/15 text-gray-300 hover:bg-purple-800'}`}
+  >
+    Never Touched a Knife
+  </button>
+  <button
+    onClick={() => setSkillLevel('intermediate')}
+    className={`px-4 py-2 rounded-lg font-semibold transition-colors duration-200 ${skillLevel === 'intermediate' ? 'bg-purple-700 text-white shadow-md' : 'bg-white/15 text-gray-300 hover:bg-purple-800'}`}
+  >
+    {"Won't Burn Down the Kitchen"}
+  </button>
+  <button
+    onClick={() => setSkillLevel('expert')}
+    className={`px-4 py-2 rounded-lg font-semibold transition-colors duration-200 ${skillLevel === 'expert' ? 'bg-purple-700 text-white shadow-md' : 'bg-white/15 text-gray-300 hover:bg-purple-800'}`}
+  >
+    Could Be on Master Chef
+  </button>
+</div>
         </div>
 
         <button
