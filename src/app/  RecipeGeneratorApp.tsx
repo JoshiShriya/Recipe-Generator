@@ -207,11 +207,11 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
     });
 
     if (!response.ok) {
-      const errorData: GeminiApiResponse = await response.json();
+      const errorData: GeminiApiResponse = await response.json()as GeminiApiResponse;
       throw new Error(`API error: ${response.status} ${response.statusText} - ${errorData.error?.message ?? "Unknown error"}`);
     }
 
-    const result: GeminiApiResponse = await response.json();
+    const result: GeminiApiResponse = await response.json() as GeminiApiResponse;
     if (result.candidates?.[0]?.content?.parts?.[0]?.text) {
       const generatedText = result.candidates[0].content.parts[0].text;
       const parsed = parseGeneratedRecipes(generatedText);
@@ -232,24 +232,45 @@ Ensure the response is only the recipes in Markdown format, separated by a horiz
   }
 };
 
+  // const parseGeneratedRecipes = (markdown: string): GeneratedRecipe[] => {
+  //   const recipeBlocks = markdown.split(/\n---\n|\n--- /).filter(block => block.trim() !== '');
+  //   return recipeBlocks.map(block => {
+  //     const titleMatch = block.match(/^##\s*(.*?)(\n|$)/m);
+  //     const ingredientsMatch = block.match(/###\s*Ingredients:\n([\s\S]*?)(?=\n###|$)/m);
+  //     const instructionsMatch = block.match(/###\s*Instructions:\n([\s\S]*?)(?=\n###|$)/m);
+  //     const notesMatch = block.match(/###\s*Notes:\n([\s\S]*?)(\n|$)/m);
+
+  //     return {
+  //       title: titleMatch?.[1]?.trim() ?? "Untitled Recipe",
+  //       description: "",
+  //       ingredients: ingredientsMatch?.[1]?.trim() ?? "No ingredients listed.",
+  //       instructions: instructionsMatch?.[1]?.trim() ?? "No instructions provided.",
+  //       notes: notesMatch?.[1]?.trim() ?? ""
+  //     };
+  //   });
+  // };
   const parseGeneratedRecipes = (markdown: string): GeneratedRecipe[] => {
-    const recipeBlocks = markdown.split(/\n---\n|\n--- /).filter(block => block.trim() !== '');
-    return recipeBlocks.map(block => {
-      const titleMatch = block.match(/^##\s*(.*?)(\n|$)/m);
-      const ingredientsMatch = block.match(/###\s*Ingredients:\n([\s\S]*?)(?=\n###|$)/m);
-      const instructionsMatch = block.match(/###\s*Instructions:\n([\s\S]*?)(?=\n###|$)/m);
-      const notesMatch = block.match(/###\s*Notes:\n([\s\S]*?)(\n|$)/m);
+  const recipeBlocks = markdown.split(/\n---\n|\n--- /).filter(block => block.trim() !== '');
+  return recipeBlocks.map(block => {
+    const titleRegex = /^##\s*(.*?)(\n|$)/m;
+    const ingredientsRegex = /###\s*Ingredients:\n([\s\S]*?)(?=\n###|$)/m;
+    const instructionsRegex = /###\s*Instructions:\n([\s\S]*?)(?=\n###|$)/m;
+    const notesRegex = /###\s*Notes:\n([\s\S]*?)(\n|$)/m;
 
-      return {
-        title: titleMatch?.[1]?.trim() ?? "Untitled Recipe",
-        description: "",
-        ingredients: ingredientsMatch?.[1]?.trim() ?? "No ingredients listed.",
-        instructions: instructionsMatch?.[1]?.trim() ?? "No instructions provided.",
-        notes: notesMatch?.[1]?.trim() ?? ""
-      };
-    });
-  };
+    const titleMatch = titleRegex.exec(block);
+    const ingredientsMatch = ingredientsRegex.exec(block);
+    const instructionsMatch = instructionsRegex.exec(block);
+    const notesMatch = notesRegex.exec(block);
 
+    return {
+      title: titleMatch?.[1]?.trim() ?? "Untitled Recipe",
+      description: "",
+      ingredients: ingredientsMatch?.[1]?.trim() ?? "No ingredients listed.",
+      instructions: instructionsMatch?.[1]?.trim() ?? "No instructions provided.",
+      notes: notesMatch?.[1]?.trim() ?? ""
+    };
+  });
+};
   // --- Saved Recipes Actions ---
   const handleSaveRecipe = async (recipeToSave: GeneratedRecipe) => {
     setIsSavingRecipe(true);
