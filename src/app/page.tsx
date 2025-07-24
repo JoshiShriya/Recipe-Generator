@@ -1,12 +1,12 @@
-import Link from "next/link"; // Keep Link if you need the documentation links
+import Link from "next"; // Keep Link if you need the documentation links
 
 //import { LatestPost } from "~/app/_components/post"; // Keep if you plan to use it without authentication, otherwise remove
 //import { auth } from "~/server/auth"; 
 import { api, HydrateClient } from "~/trpc/server"; // Keep these for tRPC functionality
-import  RecipeGeneratorApp from "./  RecipeGeneratorApp";
+import  RecipeGeneratorApp from "./RecipeGeneratorAPP";
 
 export default async function Home() {
-  const hello = await api.post.hello({ text: "from tRPC" });
+  //const hello = await api.post.hello({ text: "from tRPC" });
 
   return (
     <HydrateClient>
