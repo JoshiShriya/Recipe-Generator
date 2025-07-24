@@ -14,11 +14,11 @@ import { useInventory } from './hooks/useInventory';
 import type {SavedRecipe } from './types/types';
 
 export default function App() {
+  console.log('API Key:', process.env.NEXT_PUBLIC_GEMINI_API_KEY);
   const [currentPage, setCurrentPage] = useState<string>('home');
   const [selectedRecipe, setSelectedRecipe] = useState<SavedRecipe | null>(null);
   const { modalState, showModal, closeModal } = useModal();
-  
-  // Add these hooks
+
   const { savedRecipes, saveRecipe, removeRecipe } = useRecipes();
   const { inventory, pantryInput, setPantryInput, addItem, removeItem } = useInventory();
 
@@ -79,6 +79,7 @@ export default function App() {
         } } />;
     }
   };
+  
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-purple-800 to-indigo-900 text-white font-sans">
