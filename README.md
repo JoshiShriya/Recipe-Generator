@@ -14,6 +14,6 @@ Features
 
 Demo Video 
 https://youtu.be/KC5xKr56WMQ 
-
+and the website : https://recipe-generator-iosu9k7qe-shriya-joshis-projects.vercel.app/ 
 
 If the website if being accessed through local host, then please make sure to type npm run dev
